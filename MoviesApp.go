@@ -35,43 +35,85 @@ func main() {
 	}
 }
 
-func FindMovieEndpoint(writer http.ResponseWriter, request *http.Request) {
-
+func FindMovieEndpoint(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	vars := mux.Vars(r)
+	movie, err := dao.FindById(vars["id"])
+	if err!= nil{
+		respondWithError(w, http.StatusNotFound, "Invalid Movie ID")
+		return
+	}
+	respondWithJson(w, http.StatusOK, movie)
 }
-func DeleteMovieEndPoint(writer http.ResponseWriter, request *http.Request) {
 
-}
-func UpdateMovieEndPoint(writer http.ResponseWriter, request *http.Request) {
 
-}
-func CreateMovieEndPoint(writer http.ResponseWriter, request *http.Request) {
-	defer request.Body.Close()
+func DeleteMovieEndPoint(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	var movie models.Movie
-	if error := json.NewDecoder(request.Body).Decode(&movie); error != nil{
-		respondWithError(writer, http.StatusBadRequest, "Invalid request payload")
+	if err:=json.NewDecoder(r.Body).Decode(&movie); err != nil{
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err:= dao.Delete(movie) ; err !=nil{
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJson(w, http.StatusOK, map[string]string{"result":"success"})
+}
+
+func UpdateMovieEndPoint(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var movie models.Movie
+	if err:= json.NewDecoder(r.Body).Decode(&movie); err!=nil{
+		respondWithError(w, http.StatusBadRequest, "Invalid r payload")
+		return
+	}
+
+	if update := dao.Update(movie) ; update!=nil{
+		respondWithJson(w, http.StatusInternalServerError, update.Error())
+		return
+	}
+
+	respondWithJson(w, http.StatusOK, map[string]string{"result":"success"})
+}
+
+func CreateMovieEndPoint(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var movie models.Movie
+	if error := json.NewDecoder(r.Body).Decode(&movie); error != nil{
+		respondWithError(w, http.StatusBadRequest, "Invalid r payload")
 		return
 	}
 	movie.ID = bson.NewObjectId()
 	if err := dao.Insert(movie); err != nil{
-		respondWithError(writer, http.StatusInternalServerError, err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondWithJson(writer, http.StatusCreated, movie)
+	respondWithJson(w, http.StatusCreated, movie)
 }
 
 func respondWithError(w http.ResponseWriter, code int, msg string){
 	respondWithJson(w, code, map[string]string{"error": msg})
 }
 
-func respondWithJson(writer http.ResponseWriter, code int, payload interface{}){
+func respondWithJson(w http.ResponseWriter, code int, payload interface{}){
 	response, _ := json.Marshal(payload)
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(code)
-	writer.Write(response)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
 }
 
-func AllMoviesEndPoint(writer http.ResponseWriter, request *http.Request) {
+func AllMoviesEndPoint(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	movies, e := dao.FindAll()
 
+	if e!=nil{
+		respondWithError(w, http.StatusNotFound, e.Error())
+		return
+	}
+	respondWithJson(w, http.StatusOK, movies)
 }
 
 
