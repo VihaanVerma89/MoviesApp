@@ -1,20 +1,24 @@
 package main
 
 import (
+	. "MoviesApp/config"
+	"MoviesApp/daos"
+	"MoviesApp/models"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/mlabouardy/movies-restapi/models"
-	. "github.com/mlabouardy/movies-restapi/dao"
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/http"
 )
 
-var dao  = MoviesDAO{}
+var config = Config{}
+var dao  = daos.MoviesDAO{}
 
 func init(){
-	fmt.Println("init called")
+	config.Read()
+	dao.Server = config.Server
+	dao.Database = config.Database
+	dao.Connect()
 }
 
 func main() {
